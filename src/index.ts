@@ -74,7 +74,7 @@ async function doRead(io: SerialIO) {
   const {
     label,
     startAddress: startAddressStr,
-    count: countStr,
+    endAddress: endAddressStr,
   } = (await prompt([
     {
       type: 'input',
@@ -84,27 +84,25 @@ async function doRead(io: SerialIO) {
     {
       type: 'input',
       name: 'startAddress',
-      message: 'Read start address',
-      initial: '0',
+      message: 'Read start address (hex)',
+      initial: '00',
     },
     {
       type: 'input',
-      name: 'count',
-      message: 'Read count',
-      initial: '16',
+      name: 'endAddress',
+      message: 'Read end address (hex)',
+      initial: '0F',
     },
-  ])) as { label: string; startAddress: string; count: string };
-  const startAddress = parseInt(startAddressStr, 10);
-  const count = parseInt(countStr, 10);
-
-  const endAddress = startAddress + count;
+  ])) as { label: string; startAddress: string; endAddress: string };
+  const startAddress = parseInt(startAddressStr, 16);
+  const endAddress = parseInt(endAddressStr, 16);
 
   if (!label) {
     console.log('invalid label');
     return;
   }
 
-  if (startAddress < 0 || endAddress <= startAddress) {
+  if (!Number.isInteger(startAddress) || !Number.isInteger(endAddress) || startAddress < 0 || endAddress <= startAddress) {
     console.log('invalid read range');
     return;
   }
@@ -115,6 +113,7 @@ async function doRead(io: SerialIO) {
   io.serial.write(m300Command);
 
   // read response between start and end marker
+  console.log('receiving data...');
   let response = '';
   for (;;) {
     // wait for data
@@ -122,6 +121,7 @@ async function doRead(io: SerialIO) {
 
     // read next string
     const str = io.rx.toString('utf8');
+    console.log(str);
 
     // append to response
     response += str;
@@ -136,6 +136,7 @@ async function doRead(io: SerialIO) {
       break;
     }
   }
+  console.log('\ndone');
 
   // write response to file
   await writeFiles(label, response);
