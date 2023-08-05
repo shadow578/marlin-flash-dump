@@ -1,105 +1,25 @@
-# typescript-project-template
+# marlin-flash-dump
 
-A simple project template for a library or node application written in typescript. 
-
-- code and tests in `typescript`
-- linting using `eslinit`
-- formatting using `prettier`
-- testing using `jest` and `ts-jest`
-
-
-## Setup
-After cloning, first run the following command:
-```shell
-npm i
-```
-
-After the command finished, you'll want to adjust the `package.json` and `tsconfig.json` to better match your use-case.
-
-### Library Project
-For a library project (that you wish to publish on npm), remove the following script from the `package.json`:
-
-```json
-"scripts": {
-  "start": "npm run build & node .",
-},
-```
-
-### Node Application Project
-For a application project using node, remove the following scripts from the `package.json` (unless you want to publish the application on npm):
-
-```json
-"scripts": {
-  "prepare": "npm run build",
-  "prepublishOnly": "npm test && npm run lint",
-},
-```
-
-Additionally, you may remove any of the following lines in the `package.json`:
-
-```json
-"description": "",
-"author": "shadow578",
-"license": "Apache-2.0",
-"keywords": [
-  "typescript"
-],
-"repository": {
-  "type": "git",
-  "url": "git+https://github.com/shadow578/typescript-project-template.git"
-},
-"homepage": "https://github.com/shadow578/typescript-project-template",
-"bugs": {
-  "url": "https://github.com/shadow578/typescript-project-template/issues"
-},
-"types": "lib/index.d.ts",
-"files": [
-  "lib/**/*"
-],
-```
-
-
-Additionally, you may want to adjust the `tsconfig.json` file to use the recommended settings for node.
-To do this, first install the `@tsconfig/node18` package using
-```shell
-npm install --save-dev @tsconfig/node18
-```
-
-Now, adjust the `tsconfig.json` to match the following:
-```json
-{
-  "extends": "@tsconfig/node18/tsconfig.json",
-  "compilerOptions": {
-    "moduleResolution": "Node",
-    "outDir": "lib",
-    "strict": true,
-    "sourceMap": true
-  },
-  "include": ["src"],
-  "exclude": ["node_modules", "**/__tests__/*"]
-}
-```
-
-
-You may also adjust the `.eslintrc.json` file and set `"browser": false`.
+small (and kinda bad) utility to dump parts of flash memory from a marlin printer, specifically ones based on the HC32F460 SoC.
+Hijacks the `M300` gcode to do the dumping, and comes with nearly no error handling, so good look i guess ;).
 
 
 ## Usage
-### Commands
 
- | Command              | Description                                        | Library | Node Application |
- | -------------------- | -------------------------------------------------- | ------- | ---------------- |
- | `npm run build`      | Build the Project (`tsc`)                          | ✔️       | ✔️                |
- | `npm start`          | Build and Start the Application                    | ❌       | ✔️                |
- | `npm test`           | Run all unit tests                                 | ✔️       | ✔️                |
- | `npm run format `    | Format all files with `prettier`                   | ✔️       | ✔️                |
- | `npm run lint`       | Lint all files with `es-lint`                      | ✔️       | ✔️                |
- | `npm version ()...)` | Change the project version (see below)             | ✔️       | ✔️                |
- | `npm publish `       | Build, Test, Lint. Then Publish the Library to npm | ✔️       | ❌\*              |
-
-
-#### Details on `npm version`
-with `npm version (...)`, the version of the project can be changed easily.
-the project is configured in such a way that changing the version automaticall creates a new tag and pushes it to the remote repository (if set up).
-
-For more details, see [the npm docs](https://docs.npmjs.com/cli/v8/commands/npm-version)
+1. copy the provided [M300.cpp](https://github.com/shadow578/marlin-flash-dump/blob/main/M300.cpp) file to your Marlin source folder, compile Marlin and flash it onto your printer.
+  - to test everything works, dump a small section of memory using `M300 S0 E15` (dumps the first 16 bytes of flash)
+2. connect the printer to your computer using serial (most printers have a usb port that provides serial access)
+3. make sure that [node.js](https://nodejs.org) and npm are installed on your system
+4. clone (or download) this repository and run `npm install`
+5. run `npm start` to start the utility
+6. the utility will now allow you to select the serial port the printer is connected to and the baud rate.
+  - unless you changed the marlin config, the baud rate should be 115200
+7. now, the utility will ask you for a few things:
+  - label: the name used for the file created after reading
+  - start address: address at which reading the flash starts, in hexadecimal 
+  - end address: address at which reading the flash ends, in hexadecimal
+8. after providing the end address, dumping will begin. This may take a few minutes.
+9. after dumping is done, you'll see a "done" message and two files are created in `./data/`:
+  - `./data/<label>.txt`: raw response received from the printer
+  - `./data/<label>.bin`: binary containing the contents of flash in the dumped range
+10. repeat steps 5-9 at least one more time with the same start and end address, and verify both binaries are equal
